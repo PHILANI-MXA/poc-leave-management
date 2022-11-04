@@ -1,32 +1,78 @@
-const express = require("express"); // Used to set up a server
-const cors = require("cors"); // Used to prevent errors when working locally
+require('dotenv').config();
+const db = require('./config/dbconn');
+const con = require('./config/dbconn')
+const bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+const router = express.Router();
+const path = require('path');
+const cors = require('cors');
+const { hash, hashSync, compare } = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const PORT = process.env.PORT || 3000;
 
-const app = express(); // Initialize express as an app variable
-app.set("port", process.env.PORT || 8001); // Set the port
-app.use(express.json()); // Enable the server to handle JSON requests
+app.use(cors({
+    origin: ['http://127.0.0.1:8080 ', 'http://localhost:8080'],
+    credentials: true,
+    optionSuccessStatus: 200
+  }));
+  const corsOptions = {
+    origin: '*',
+    credentials: true,
+    optionSuccessStatus: 200
+  };
 
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
-    res.setHeader('Access-Control-Allow-Methods', '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    next();
-  }); // Dont let local development give errors
+  app.use(
+    router,
+    express.json(),
+    express.urlencoded({
+      extended: true
+    })
+  );
 
-// Import routes
+  app.listen(PORT, (err) => {
+    if (err) throw err;
+    console.log(`Sever http://localhost:${PORT} is running`);
+  });
 
-app.get("/", (req, res) => {
-    res.json({ msg: "The server is ruuning by Lunga Booi!!!" });
+  //   router.get('/', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'View', 'index.html'));
+//   });
+
+  router.get("/", (req, res) => {
+    try {
+        con.query("SELECT * FROM employees", (err, result) => {
+            if (err) throw err;
+            res.send(result);
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(400).send(error)
+    }
 });
 
 
-const userRoute = require("./routes/userRoute");
-app.use("/users", userRoute);
+  router.post("/", (req, res) => {
+    const employee = {
+      firstName:req.body.firstName,
+      lastName:req.body.lastName,
+      StartDate:req.body.StartDate,
+      EndDate:req.body.EndDate,
+      TypeofLeave:req.body.TypeofLeave,
+      Reason:req.body.Reason,
+      LeaveTotal:req.body.LeaveTotal,
+    } 
+    try {
+        con.query(`INSERT INTO employees SET ?`,employee, (err, result) => {
+            if (err) throw err;
+            res.send(result);
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(400).send(error)
+    }
+  });
 
-const bookRoute = require("./routes/bookRoute");
-app.use("/books", bookRoute);
 
-app.listen(app.get("port"), () => {
-    console.log(`Listening for calls on port ${app.get("port")}`);
-    console.log("Press Ctrl+C to exit server");
-}); 
+
+
